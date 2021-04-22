@@ -360,6 +360,17 @@ class RouteCollection implements RouteCollectionInterface
 
 	//--------------------------------------------------------------------
 
+    /**
+     * Returns the module config
+     *
+     * @return object $moduleConfig
+     */
+    public function getModuleConfig() {
+        return $this->moduleConfig;
+    }
+
+    //--------------------------------------------------------------------
+
 	/**
 	 * Returns the 404 Override setting, which can be null, a closure
 	 * or the controller/string.

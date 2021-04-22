@@ -421,10 +421,18 @@ class CodeIgniter
 
 		$returned = $this->startController();
 
-		// Closure controller has run in startController().
-		if (! is_callable($this->controller))
+		// Closure controllers will have run in startController().
+		if (! is_callable($this->controller) ||
+            (is_object($this->controller) && get_class($this->controller) !== 'Closure'))
+		{
+		    if (is_object($this->controller) && get_class($this->controller) !== 'Closure')
+		    {
+                $controller = $this->controller;
+            }
+            else
 		{
 			$controller = $this->createController();
+            }
 
 			if (! method_exists($controller, '_remap') && ! is_callable([$controller, $this->method], false))
 			{
@@ -875,6 +883,8 @@ class CodeIgniter
 	 * Now that everything has been setup, this method attempts to run the
 	 * controller method and make the script go. If it's not able to, will
 	 * show the appropriate Page Not Found error.
+     *
+     * @return mixed
 	 */
 	protected function startController()
 	{
@@ -894,6 +904,11 @@ class CodeIgniter
 			throw PageNotFoundException::forEmptyController();
 		}
 
+		if (gettype($this->controller) !== 'string')
+        {
+            return;
+        }
+
 		// Try to autoload the class
 		if (! class_exists($this->controller, true) || $this->method[0] === '_')
 		{
@@ -910,7 +925,19 @@ class CodeIgniter
 	 */
 	protected function createController()
 	{
-		$class = new $this->controller();
+	    $constructor = '__construct';
+	    if (! is_null($this->router->controllerConstructor()) && method_exists($this->controller, $constructor))
+	    {
+            // Allow passage of constructor arguments to the controller if desired,
+            // since neither Controller or BaseController classes have constructor methods.
+            // If $this->controller is already a passed object then it will already be
+            // instantiated, but won't have the benefit of this construction.
+            $class = new $this->controller(...$this->router->controllerConstructor()); // @phpstan-ignore-line
+        }
+        else
+        {
+            $class = new $this->controller(); // @phpstan-ignore-line
+        }
 		$class->initController($this->request, $this->response, Services::logger());
 
 		$this->benchmark->stop('controller_constructor');
